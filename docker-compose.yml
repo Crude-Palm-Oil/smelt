@@ -1,0 +1,38 @@
+services:
+  frontend:
+    image: ghcr.io/Crude-Palm-Oil/smelt-frontend:latest
+    expose:
+      - "3000"
+  analysis:
+    image: ghcr.io/Crude-Palm-Oil/smelt-analysis:latest
+    expose:
+      - "8080"
+  analysis-worker:
+    image: ghcr.io/Crude-Palm-Oil/smelt-analysis-worker:latest
+  backend:
+    image: ghcr.io/Crude-Palm-Oil/smelt-backend:latest 
+    expose:
+      - "8000"
+  reports:
+    build: ghcr.io/Crude-Palm-Oil/smelt-reports:latest
+    expose:
+      - "8000"
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - analysis
+      - analysis-worker
+      - backend
+      - reports
+volumes:
+  caddy_data:
+  caddy_config:
