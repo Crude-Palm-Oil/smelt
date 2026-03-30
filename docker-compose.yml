@@ -9,9 +9,13 @@ services:
     container_name: smelt-analysis
     expose:
       - "8080"
+    depends_on:
+      - analysis-queue
   analysis-worker:
     image: ghcr.io/Crude-Palm-Oil/smelt-analysis-worker:latest
     container_name: smelt-analysis-worker
+    depends_on:
+      - analysis-queue
   backend:
     image: ghcr.io/Crude-Palm-Oil/smelt-backend:latest 
     container_name: smelt-backend
