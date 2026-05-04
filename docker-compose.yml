@@ -1,11 +1,73 @@
+name: smelt
 services:
-  smelt-analysis-api:
-    container_name: smelt-analysis-api
+  ui:
+    build:
+      context: ../smelt-frontend
+      args:
+        - NEXT_PUBLIC_ANALYSIS_API_URL=${UI_ANALYSIS_API_URL}
+        - NEXT_PUBLIC_REPORT_API_URL=${UI_REPORT_API_URL}
+        - NEXT_PUBLIC_CONFIG_API_URL=${UI_CONFIG_API_URL}
+        - NEXT_PUBLIC_API_SCAN_URL=${UI_API_URL}
+        - NEXT_PUBLIC_API_BASE_URL=${UI_API_URL}
+        - NEXT_PUBLIC_APP_NAME=smelt
+    container_name: smelt-analysis-ui
+    depends_on:
+      - analysis
+      - analysis-worker
+    environment:
+      - NEXT_PUBLIC_ANALYSIS_API_URL=${UI_ANALYSIS_API_URL}
+      - NEXT_PUBLIC_REPORT_API_URL=${UI_REPORT_API_URL}
+      - NEXT_PUBLIC_CONFIG_API_URL=${UI_CONFIG_API_URL}
+      - NEXT_PUBLIC_API_SCAN_URL=${UI_API_URL}
+      - NEXT_PUBLIC_API_BASE_URL=${UI_API_URL}
+      - NEXT_PUBLIC_APP_NAME=smelt
+    expose:
+      - "3000"
+  backend:
+    build:
+      context: ../smelt-backend
+    container_name: smelt-backend
+    depends_on:
+      - analysis
+      - db
+      - s3
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - SECRET_KEY=${AUTH_SECRET_KEY}
+      - ANALYSIS_HOST=${ANALYSIS_ENDPOINT_URL}
+
+      - RUSTFS_ENDPOINT=${S3_BUCKET_ENDPOINT}
+      - RUSTFS_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
+      - RUSTFS_BUCKET=configs
+  reports:
+    build:
+      context: ../smelt-reports
+    container_name: smelt-reports
+    depends_on:
+      - db
+      # - reports-ollama
+      - s3
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - RUSTFS_ENDPOINT=${S3_BUCKET_ENDPOINT}
+      - RUSTFS_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
+      - RUSTFS_BUCKET=reports
+      - ANALYSIS_S3_ENDPOINT=${S3_BUCKET_ENDPOINT}
+      - ANALYSIS_S3_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
+      - ANALYSIS_S3_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
+      - ANALYSIS_S3_BUCKET=scans
+      - OLLAMA_URL=${OLLAMA_URL}
+    ports:
+      - "8001:8001"
+  analysis:
     build:
       context: ../smelt-analysis
       dockerfile: api.Dockerfile
-    ports:
-      - 8080:8080
+    container_name: smelt-analysis-api
+    depends_on:
+      - analysis-worker
     environment:
       - ANALYSIS_REDIS_URL=${ANALYSIS_REDIS_URL}
       - S3_BUCKET_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
@@ -18,15 +80,17 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_SSLMODE=${POSTGRES_SSLMODE}
-    depends_on:
-      - smelt-db
-      - smelt-s3
-      - smelt-analysis-redis
-  smelt-analysis-worker:
-    container_name: smelt-analysis-worker
+    ports:
+      - "8080:8080"
+  analysis-worker:
     build:
       context: ../smelt-analysis
       dockerfile: worker.Dockerfile
+    container_name: smelt-analysis-worker
+    depends_on:
+      - analysis-redis
+      - db
+      - s3
     environment:
       - ANALYSIS_WORKER_CONCURRENCY=${ANALYSIS_WORKER_CONCURRENCY}
       - ANALYSIS_REDIS_URL=${ANALYSIS_REDIS_URL}
@@ -40,49 +104,68 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_SSLMODE=${POSTGRES_SSLMODE}
-    depends_on:
-      - smelt-db
-      - smelt-s3
-      - smelt-analysis-redis
-  smelt-analysis-redis:
+  analysis-redis:
+    image: redis:8.6
     container_name: smelt-analysis-redis
-    image: redis:latest
-    command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
     expose:
-      - 6379
-  smelt-s3:
-    container_name: smelt-s3
+      - "6379"
+  # reports-ollama:
+  #   build:
+  #     context: .
+  #     dockerfile: ollama.Dockerfile
+  #   container_name: smelt-reports-ollama
+  #   ports:
+  #     - "11434:11434"
+  s3:
     image: rustfs/rustfs:latest
-    expose:
-      - 9000
-      - 9001
+    container_name: smelt-s3
     volumes:
       - s3-data:/data
     environment:
       - RUSTFS_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
+    expose:
+      - "9000"
     command: 
       - "--access-key"
       - ${S3_BUCKET_ACCESS_KEY}
       - "--secret-key"
       - ${S3_BUCKET_SECRET_KEY}
       - "/data"
-    restart: unless-stopped
-  smelt-db:
+  db:
+    image: postgres:14
     container_name: smelt-db
-    image: postgres:latest
-    expose:
-      - 5432
     volumes:
       - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_DB=${POSTGRES_DB}
+    expose:
+      - "5432"
+  proxy:
+    image: caddy:2.11
+    container_name: smelt-proxy
+    depends_on:
+      - analysis
+      - ui
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    restart: unless-stopped
+
 volumes:
-  s3-data:
-  redis-data:
+  caddy-data:
+  caddy-config:
   db-data:
+  ollama-data:
+  redis-data:
+  s3-data:

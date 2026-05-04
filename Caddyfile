@@ -1,0 +1,8 @@
+:80 {
+    reverse_proxy /static/files/* s3:9000
+    reverse_proxy /static/* ui:3000
+    reverse_proxy /api/* backend:8000
+    reverse_proxy /api/analysis/* analysis:8080
+    reverse_proxy /api/reports/* reports:8001
+    reverse_proxy * ui:3000
+}
