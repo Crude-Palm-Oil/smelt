@@ -77,6 +77,8 @@ CREATE TABLE public.targets (
     ip_address text,
     hostname text,
     port integer NOT NULL,
+    common_name text,
+    issuer_cn text,
     last_seen_at timestamp with time zone DEFAULT now() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
