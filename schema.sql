@@ -63,6 +63,7 @@ CREATE TABLE public.reports (
 
 CREATE TABLE public.scans (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
+    recurring_id uuid,
     scanned_at timestamp with time zone DEFAULT now() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     target_count integer DEFAULT 0 NOT NULL,
@@ -96,6 +97,11 @@ CREATE TABLE public.users (
     updated_at time with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE public.recurring_scans (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    cron text NOT NULL
+);
 
 ALTER TABLE ONLY public.certificates
     ADD CONSTRAINT certificates_fingerprint_key UNIQUE (fingerprint);
@@ -108,6 +114,9 @@ ALTER TABLE ONLY public.lints
 
 ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.recurring_scans
+    ADD CONSTRAINT recurring_scans_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_scan_id_key UNIQUE (scan_id);
@@ -154,3 +163,18 @@ ALTER TABLE ONLY public.reports
 ALTER TABLE ONLY public.lints
     ADD CONSTRAINT fk_scans_target FOREIGN KEY (target_id) REFERENCES public.targets(id) ON DELETE CASCADE;
 
+INSERT INTO public.users (
+    name,
+    email,
+    password_hash
+)
+VALUES (
+    'Test User',
+    'test@email.com',
+    '$2b$12$F12YofsyO5ukBevknYGzf.kVEt0I7sTtlPGSkVRjC4nrgCHPZInsS'
+)
+ON CONFLICT (email) DO UPDATE
+SET
+    name = EXCLUDED.name,
+    password_hash = EXCLUDED.password_hash,
+    updated_at = CURRENT_TIMESTAMP;

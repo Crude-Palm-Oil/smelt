@@ -46,7 +46,7 @@ services:
     container_name: smelt-reports
     depends_on:
       - db
-      # - reports-ollama
+      - reports-ollama
       - s3
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
@@ -110,15 +110,15 @@ services:
     volumes:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
-    expose:
-      - "6379"
-  # reports-ollama:
-  #   build:
-  #     context: .
-  #     dockerfile: ollama.Dockerfile
-  #   container_name: smelt-reports-ollama
-  #   ports:
-  #     - "11434:11434"
+    ports:
+      - "6379:6379"
+  reports-ollama:
+    build:
+      context: .
+      dockerfile: ollama.Dockerfile
+    container_name: smelt-reports-ollama
+    ports:
+      - "11434:11434"
   s3:
     image: rustfs/rustfs:latest
     container_name: smelt-s3
