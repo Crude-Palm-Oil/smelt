@@ -1,5 +1,4 @@
 :80 {
-    reverse_proxy /static/files/* s3:9000
     reverse_proxy /static/* ui:3000
     reverse_proxy * ui:3000
 }

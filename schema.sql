@@ -42,7 +42,6 @@ CREATE TABLE public.lints (
     target_id uuid,
     cert_id uuid,
     scanned_at timestamp with time zone DEFAULT now() NOT NULL,
-    lint_results text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     status public.lint_status NOT NULL
 );
@@ -69,8 +68,7 @@ CREATE TABLE public.scans (
     target_count integer DEFAULT 0 NOT NULL,
     name character varying DEFAULT 'New Scan'::character varying NOT NULL,
     status public.scan_status DEFAULT 'stopped'::public.scan_status NOT NULL,
-    processed_count integer DEFAULT 0 NOT NULL,
-    scan_results text
+    processed_count integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE public.targets (
@@ -100,8 +98,18 @@ CREATE TABLE public.users (
 CREATE TABLE public.recurring_scans (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
-    cron text NOT NULL
+    cron text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+CREATE TABLE public.configs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    domain text NOT NULL
+);
+
+ALTER TABLE ONLY public.configs
+    ADD CONSTRAINT configs_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.certificates
     ADD CONSTRAINT certificates_fingerprint_key UNIQUE (fingerprint);

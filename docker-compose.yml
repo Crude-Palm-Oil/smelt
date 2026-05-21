@@ -104,6 +104,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_SSLMODE=${POSTGRES_SSLMODE}
+      - TZ=${TZ}
   analysis-redis:
     image: redis:8.6
     container_name: smelt-analysis-redis
@@ -127,8 +128,8 @@ services:
     environment:
       - RUSTFS_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
-    expose:
-      - "9000"
+    ports:
+      - "9000:9000"
     command: 
       - "--access-key"
       - ${S3_BUCKET_ACCESS_KEY}
