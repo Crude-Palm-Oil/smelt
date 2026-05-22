@@ -59,8 +59,8 @@ services:
       - ANALYSIS_S3_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
       - ANALYSIS_S3_BUCKET=scans
       - OLLAMA_URL=${OLLAMA_URL}
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
   analysis:
     build:
       context: ../smelt-analysis
@@ -80,8 +80,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_SSLMODE=${POSTGRES_SSLMODE}
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
   analysis-worker:
     build:
       context: ../smelt-analysis
@@ -94,6 +94,7 @@ services:
     environment:
       - ANALYSIS_WORKER_CONCURRENCY=${ANALYSIS_WORKER_CONCURRENCY}
       - ANALYSIS_REDIS_URL=${ANALYSIS_REDIS_URL}
+      - ANALYSIS_API_URL=${UI_ANALYSIS_API_URL}
       - S3_BUCKET_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
       - S3_BUCKET_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
       - S3_BUCKET_REGION=${S3_BUCKET_REGION}
@@ -118,8 +119,8 @@ services:
       context: .
       dockerfile: ollama.Dockerfile
     container_name: smelt-reports-ollama
-    ports:
-      - "11434:11434"
+    expose:
+      - "11434"
   s3:
     image: rustfs/rustfs:latest
     container_name: smelt-s3
@@ -128,8 +129,8 @@ services:
     environment:
       - RUSTFS_ACCESS_KEY=${S3_BUCKET_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${S3_BUCKET_SECRET_KEY}
-    ports:
-      - "9000:9000"
+    expose:
+      - "9000"
     command: 
       - "--access-key"
       - ${S3_BUCKET_ACCESS_KEY}
