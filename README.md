@@ -16,12 +16,12 @@ git clone https://github.com/Crude-Palm-Oil/smelt-analysis
 git clone https://github.com/Crude-Palm-Oil/smelt-reports
 ```
 
-1. Create an `.env` file on this directory to be used by Docker Compose. An example is provided in `.env.example`.
+2. Create an `.env` file on this directory to be used by Docker Compose. An example is provided in `.env.example`.
 
-1. Run the services using:
+3. Run the services using:
 
 ```bash
 docker compose up -d
 ```
 
-1. Access the website on `localhost` using the default credentials `test@admin.com:password`.
+4. Access the website on `localhost` using the default credentials `test@admin.com:password`.
